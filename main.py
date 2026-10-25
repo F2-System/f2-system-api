@@ -36,10 +36,21 @@ async def health():
 @app.post("/pedido")
 async def pedido(body: PedidoCalculadora):
     try:
+        dados = body.model_dump()
+
+        preco = (
+            dados["price"]
+            .replace("R$", "")
+            .replace(" ", "")
+            .replace(".", "")
+            .replace(",", ".")
+        )
+        dados["price"] = float(preco)
+
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
                 f"{BOT_API}/pedido",
-                json=body.model_dump(),
+                json=dados,
             )
 
         try:
@@ -52,6 +63,11 @@ async def pedido(body: PedidoCalculadora):
             status_code=response.status_code,
         )
 
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail="O preço enviado é inválido."
+        )
     except httpx.RequestError:
         raise HTTPException(
             status_code=502,
