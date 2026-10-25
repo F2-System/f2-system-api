@@ -1,7 +1,8 @@
 
 import os
 import httpx
-from fastapi import FastAPI, Request, HTTPException
+from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -19,20 +20,26 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+class PedidoCalculadora(BaseModel):
+    ticket: str = Field(min_length=20, max_length=200)
+    current_rank: str
+    desired_rank: str
+    reward: bool
+    upador: str
+    price: str
+
 @app.get("/")
 @app.get("/health")
 async def health():
     return {"ok": True, "service": "F2 SYSTEM API Proxy"}
 
 @app.post("/pedido")
-async def pedido(request: Request):
+async def pedido(body: PedidoCalculadora):
     try:
-        body = await request.json()
-
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
                 f"{BOT_API}/pedido",
-                json=body,
+                json=body.model_dump(),
             )
 
         try:
